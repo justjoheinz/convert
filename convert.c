@@ -3,10 +3,17 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <getopt.h>
 
 #include "cmdline.h"
 
-#define BASE10 10
+struct option   convert_options[] = {
+    {"help", no_argument, 0, 'h'},
+    {"dec", required_argument, 0, 'd'},
+    {"bin", required_argument, 0, 'b'},
+    {"hex", required_argument, 0, 'x'},
+    {0, 0, 0, 0}
+};
 
 /**
  * @brief Convert a number into a string which represents the number in binary format.
@@ -39,49 +46,48 @@ convert_to_bin(char *const buffer, size_t buf_size, unsigned long number)
 }
 
 int
-main(int argc, const char *argv[])
+main(int argc, char **argv)
 {
 
     char           *stop = NULL;
     unsigned long   value = 0;
     char            buffer[128];
 
-    if (argc == 1) {
-        help();
-        return EXIT_FAILURE;
-    }
-    if (argc == 2) {
-        if (!strcmp(argv[1], "--help")) {
+    int             index,
+                    c;
+    while (1) {
+        c = getopt_long(argc, argv, "hd:b:x:", convert_options, &index);
+
+        if (c == -1)
+            break;
+
+        switch (c) {
+        case 'h':
             help();
             return EXIT_SUCCESS;
+        case 'd':
+            value = strtoul(optarg, &stop, 10);
+            break;
+        case 'b':
+            value = strtoul(optarg, &stop, 2);
+            break;
+        case 'x':
+            value = strtoul(optarg, &stop, 16);
+            break;
         }
-    }
-    if (argc == 3) {
-        int             i = 1;
-        const char     *const option = argv[i];
 
-        if (checkOption(option, "--dec", "-d")) {
-            value = strtoul(argv[i + 1], &stop, BASE10);
-        } else if (checkOption(option, "--hex", "-h")) {
-            value = strtoul(argv[i + 1], &stop, 16);
-        } else if (checkOption(option, "--bin", "-b")) {
-            value = strtoul(argv[i + 1], &stop, 2);
-        }
         if (stop && strcmp(stop, "")) {
             printf("Invalid value option = %s\n", stop);
             return EXIT_FAILURE;
         }
-    }
-    if (argc > 3) {
-        fprintf(stderr, "Too many options.");
-        return EXIT_FAILURE;
-    }
 
-    size_t          bits = convert_to_bin(buffer, sizeof(buffer), value);
+        size_t          bits =
+            convert_to_bin(buffer, sizeof(buffer), value);
 
-    printf("Binary: %lu'b%s\n", bits, buffer);
-    printf("Hex   : 0x%lX\n", value);
-    printf("Dec   : %lu\n", value);
+        printf("Binary: %lu'b%s\n", bits, buffer);
+        printf("Hex   : 0x%lX\n", value);
+        printf("Dec   : %lu\n\n", value);
+    }
 
     return EXIT_SUCCESS;
 }
